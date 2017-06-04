@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "declaration": true,
+        "module": "commonjs",
+        "experimentalDecorators": true,
+        "lib": [ "es6" ],
+        "outDir": "lib"
+    }
+}
