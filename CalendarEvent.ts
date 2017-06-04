@@ -1,14 +1,26 @@
 import * as moment from 'moment';
 
-interface Config {
+export interface Config {
   googleId: string,
   calendarGoogleId: string,
   summary: string,
   description: string,
-  start: moment.Moment,
-  end: moment.Moment,
+  start: Date,
+  end: Date,
   cancelled: boolean
 };
+
+export class CalendarEventPlaceholder {
+  date: Date;
+
+  constructor(date: Date) {
+    this.date = date;
+  }
+
+  toString() {
+    return `[${moment(this.date).format()}] PLACEHOLDER`;
+  }
+}
 
 export default class CalendarEvent {
   config: Config;
@@ -26,10 +38,14 @@ export default class CalendarEvent {
   }
 
   isPast() {
-    return this.config.start.isBefore(moment());
+    return moment(this.config.start).isBefore(moment());
   }
 
   isToday() {
-    return this.config.start.isSame(moment(), 'day');
+    return moment(this.config.start).isSame(moment(), 'day');
+  }
+
+  toString() {
+    return `[${moment(this.config.start).format()}]: "${this.config.summary}"`;
   }
 }

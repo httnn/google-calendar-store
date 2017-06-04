@@ -8,7 +8,7 @@ export default class MongoStorage implements EventStorage {
   db: any;
   collection: any;
 
-  async init(url: string) {
+  async init(url: string = process.env.MONGO_URI) {
     this.db = await MongoClient.connect(url);
     this.collection = this.db.collection('events');
   }
@@ -19,8 +19,8 @@ export default class MongoStorage implements EventStorage {
 
   update(eventId: string, event: CalendarEvent) {
     return this.collection.updateOne(
-      {googleId: event.getId()},
-      event
+      {googleId: eventId},
+      event.config
     );
   }
 
@@ -28,7 +28,13 @@ export default class MongoStorage implements EventStorage {
     return this.collection.findOne({googleId: eventId});
   }
 
-  async find(start: moment.Moment, end: moment.Moment, calendarId?: string) {
-    return [];
+  async find(start, end, calendarId) {
+    const items = await this.collection.find({
+      calendarGoogleId: calendarId,
+      cancelled: false,
+      start: {$gte: start},
+      end: end ? {$lte: end} : undefined
+    }).toArray();
+    return items.map(i => new CalendarEvent(i));
   }
 }

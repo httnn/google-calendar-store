@@ -1,4 +1,5 @@
 const {expect} = require('chai');
+const moment = require('moment');
 
 const {Calendar, MemoryStorage} = require('../lib');
 
@@ -71,8 +72,8 @@ describe('Calendar', () => {
 
     it('parses event date correctly', () =>
       calendar.updateEvents(mockFetch(events)).then(() => {
-        expect(storage.events[0].config.start.format('YYYY-MM-DD')).to.equal('2017-05-31');
-        expect(storage.events[1].config.start.format('YYYY-MM-DD')).to.equal('2017-10-02');
+        expect(moment(storage.events[0].config.start).format('YYYY-MM-DD')).to.equal('2017-05-31');
+        expect(moment(storage.events[1].config.start).format('YYYY-MM-DD')).to.equal('2017-10-02');
       })
     );
 

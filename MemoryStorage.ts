@@ -1,3 +1,4 @@
+import * as moment from 'moment';
 import CalendarEvent from './CalendarEvent';
 import {EventStorage} from './EventStorage';
 
@@ -30,8 +31,8 @@ export default class MemoryStorage implements EventStorage {
 
   find(start, end, calendarId) {
     const results = this.events.filter(e =>
-      e.config.start.isSameOrAfter(start)
-      && e.config.end.isSameOrBefore(end)
+      moment(e.config.start).isSameOrAfter(start)
+      && moment(e.config.end).isSameOrBefore(end)
       && (!calendarId || e.config.calendarGoogleId === calendarId)
     );
     return Promise.resolve(results);

@@ -6,5 +6,5 @@ export interface EventStorage {
   create(event: CalendarEvent): Promise<CalendarEvent>;
   update(eventId: string, event: CalendarEvent): Promise<CalendarEvent>;
   findOne(eventId: string): Promise<CalendarEvent | null>;
-  find(start: moment.Moment, end: moment.Moment | void, calendarId?: string): Promise<Array<CalendarEvent>>;
+  find(start: Date, end: Date | void, calendarId?: string): Promise<Array<CalendarEvent>>;
 };
