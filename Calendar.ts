@@ -124,8 +124,8 @@ export default class Calendar {
 
   async getFilledCalendar(startOffsetWeeks: number, endOffsetWeeks: number, weekdays: Array<number> = [1,2,3,4,5,6,7]) {
     const now = moment();
-    const start = now.clone().add({weeks: startOffsetWeeks});
-    const end = now.clone().add({weeks: endOffsetWeeks});
+    const start = now.clone().add({weeks: startOffsetWeeks}).startOf('isoWeek');
+    const end = now.clone().add({weeks: endOffsetWeeks}).endOf('isoWeek');
     const allEvents = await this.getEvents(start, end);
 
     const weeks = [];
