@@ -94,7 +94,7 @@ export default class Calendar {
     return this.config.storage.find(start.toDate(), end && end.toDate(), this.config.googleId);
   }
 
-  async getWeeklyEvents(start: moment.Moment, end?: moment.Moment, weekdays: Array<number> = [0,1,2,3,4,5,6]) {
+  async getWeeklyEvents(start: moment.Moment, end?: moment.Moment, weekdays: Array<number> = [1,2,3,4,5,6,7]) {
     const events = (await this.getEvents(start, end && end)).sort((a, b) => a > b ? 1 : -1);
     const weeklyEvents = [];
     let previousWeekNumber, index = 0;
@@ -114,7 +114,7 @@ export default class Calendar {
         weeklyEvents[index] = {};
       }
 
-      const weekday = moment(event.config.start).weekday();
+      const weekday = moment(event.config.start).isoWeekday();
       if (weekdays.indexOf(weekday) > -1) {
         weeklyEvents[index][weekday] = event;
       }
@@ -122,7 +122,7 @@ export default class Calendar {
     return weeklyEvents;
   }
 
-  async getFilledCalendar(startOffsetWeeks: number, endOffsetWeeks: number, weekdays: Array<number> = [0,1,2,3,4,5,6]) {
+  async getFilledCalendar(startOffsetWeeks: number, endOffsetWeeks: number, weekdays: Array<number> = [1,2,3,4,5,6,7]) {
     const now = moment();
     const start = now.clone().add({weeks: startOffsetWeeks});
     const end = now.clone().add({weeks: endOffsetWeeks});
@@ -131,7 +131,7 @@ export default class Calendar {
     const weeks = [];
     for (let i = 0; i < endOffsetWeeks - startOffsetWeeks; i++) {
       const events = weekdays.map(weekday => {
-        const start = now.clone().add({weeks: startOffsetWeeks + i}).weekday(weekday);
+        const start = now.clone().add({weeks: startOffsetWeeks + i}).isoWeekday(weekday);
         const event = allEvents.find(event => start.isSame(event.config.start, 'day'));
         if (event) {
           return event;
