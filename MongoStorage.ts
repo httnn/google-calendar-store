@@ -8,7 +8,7 @@ export default class MongoStorage implements EventStorage {
   db: any;
   collection: any;
 
-  async init(url: string = process.env.MONGO_URI) {
+  async init(url: string = process.env.MONGO_URL) {
     this.db = await MongoClient.connect(url);
     this.collection = this.db.collection('events');
   }
