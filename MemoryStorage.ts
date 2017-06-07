@@ -14,12 +14,12 @@ export default class MemoryStorage implements EventStorage {
   }
 
   findOne(eventId) {
-    const e = this.events.find(e => e.getId() === eventId);
+    const e = this.events.find(e => e.id === eventId);
     return Promise.resolve(e);
   }
 
   update(eventId, event) {
-    const index = this.events.findIndex(e => e.getId() === eventId);
+    const index = this.events.findIndex(e => e.id === eventId);
     this.events[index] = event;
     return Promise.resolve(event);
   }
@@ -31,9 +31,9 @@ export default class MemoryStorage implements EventStorage {
 
   find(start, end, calendarId) {
     const results = this.events.filter(e =>
-      moment(e.config.start).isSameOrAfter(start)
-      && moment(e.config.end).isSameOrBefore(end)
-      && (!calendarId || e.config.calendarGoogleId === calendarId)
+      moment(e.start).isSameOrAfter(start)
+      && moment(e.end).isSameOrBefore(end)
+      && (!calendarId || e.calendarId === calendarId)
     );
     return Promise.resolve(results);
   }

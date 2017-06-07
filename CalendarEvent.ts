@@ -1,6 +1,6 @@
 import * as moment from 'moment';
 
-export interface Config {
+export interface EventData {
   googleId: string,
   calendarGoogleId: string,
   summary: string,
@@ -23,29 +23,28 @@ export class CalendarEventPlaceholder {
 }
 
 export default class CalendarEvent {
-  config: Config;
+  data: EventData;
 
-  constructor(config: Config) {
-    this.config = config;
+  constructor(data: EventData) {
+    this.data = data;
   }
 
-  getId() {
-    return this.config.googleId;
-  }
-
-  getCalendarId() {
-    return this.config.calendarGoogleId;
-  }
+  get id() { return this.data.googleId; }
+  get calendarId() { return this.data.calendarGoogleId; }
+  get summary() { return this.data.summary; }
+  get description() { return this.data.description; }
+  get start() { return this.data.start; }
+  get end() { return this.data.end; }
 
   isPast() {
-    return moment(this.config.start).isBefore(moment());
+    return moment(this.start).isBefore(moment(), 'day');
   }
 
   isToday() {
-    return moment(this.config.start).isSame(moment(), 'day');
+    return moment(this.start).isSame(moment(), 'day');
   }
 
   toString() {
-    return `[${moment(this.config.start).format()}]: "${this.config.summary}"`;
+    return `[${moment(this.start).format()}]: "${this.summary}"`;
   }
 }

@@ -1,4 +1,4 @@
-export interface Config {
+export interface EventData {
     googleId: string;
     calendarGoogleId: string;
     summary: string;
@@ -13,10 +13,14 @@ export declare class CalendarEventPlaceholder {
     toString(): string;
 }
 export default class CalendarEvent {
-    config: Config;
-    constructor(config: Config);
-    getId(): string;
-    getCalendarId(): string;
+    data: EventData;
+    constructor(data: EventData);
+    readonly id: string;
+    readonly calendarId: string;
+    readonly summary: string;
+    readonly description: string;
+    readonly start: Date;
+    readonly end: Date;
     isPast(): boolean;
     isToday(): boolean;
     toString(): string;

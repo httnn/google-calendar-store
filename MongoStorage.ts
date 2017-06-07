@@ -14,13 +14,13 @@ export default class MongoStorage implements EventStorage {
   }
 
   create(event: CalendarEvent) {
-    return this.collection.insertOne(event.config);
+    return this.collection.insertOne(event.data);
   }
 
   update(eventId: string, event: CalendarEvent) {
     return this.collection.updateOne(
       {googleId: eventId},
-      event.config
+      event.data
     );
   }
 

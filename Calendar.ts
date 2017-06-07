@@ -3,7 +3,7 @@ import {EventStorage} from './EventStorage';
 import CalendarEvent, {CalendarEventPlaceholder} from './CalendarEvent';
 import fetch from 'node-fetch';
 
-export interface Config {
+export interface CalendarData {
   googleId: string,
   storage: EventStorage,
   apiKey: string
@@ -14,6 +14,7 @@ export interface RawEvent {
 };
 
 const log = message => console.log(`[${moment().format()}] ${message}`);
+const defaultWeekdays = [1, 2, 3, 4, 5, 6, 7];
 
 class Day {
   date: moment.Moment;
@@ -25,15 +26,15 @@ class Day {
   }
 
   toString() {
-    return `${this.date.format()}: ${this.events.map(e => e.config.summary).join(', ')}`;
+    return `${this.date.format()}: ${this.events.map(e => e.summary).join(', ')}`;
   }
 }
 
 export default class Calendar {
-  config: Config;
+  data: CalendarData;
   
-  constructor(config: Config) {
-    this.config = config;
+  constructor(data: CalendarData) {
+    this.data = data;
   }
 
   parseDatetime(dateTime: any) {
@@ -44,7 +45,7 @@ export default class Calendar {
   }
 
   async upsertEvent(rawEvent: RawEvent) {
-    const {storage, googleId} = this.config;
+    const {storage, googleId} = this.data;
     const event = new CalendarEvent({
       googleId: rawEvent.id,
       calendarGoogleId: googleId,
@@ -54,9 +55,9 @@ export default class Calendar {
       end: this.parseDatetime(rawEvent.end).toDate(),
       cancelled: rawEvent.status === 'cancelled'
     });
-    const existing = await storage.findOne(event.getId());
+    const existing = await storage.findOne(event.id);
     if (existing) {
-      await storage.update(event.getId(), event);
+      await storage.update(event.id, event);
       return 'update';
     } else {
       await storage.create(event);
@@ -65,7 +66,7 @@ export default class Calendar {
   }
 
   async startEventUpdates(intervalMinutes: number = 5) {
-    log(`Updating "${this.config.googleId}" events...`);
+    log(`Updating "${this.data.googleId}" events...`);
     const [createdEvents, updatedEvents, failedUpserts] = await this.updateEvents();
     log(`Created ${createdEvents}, updated ${updatedEvents}, failed to upsert ${failedUpserts}.`);
     setTimeout(() => {
@@ -74,7 +75,7 @@ export default class Calendar {
   }
 
   async updateEvents(fetchFn = fetch) {
-    const {googleId, apiKey, storage} = this.config;
+    const {googleId, apiKey, storage} = this.data;
     const timeMin = encodeURIComponent(moment().add({days: -14}).format());
     const url = `https://www.googleapis.com/calendar/v3/calendars/${googleId}/events?key=${apiKey}&singleEvents=true&showDeleted=true&timeMin=${timeMin}`;
     try {
@@ -105,15 +106,24 @@ export default class Calendar {
   }
 
   async getEvents(start: moment.Moment, end?: moment.Moment) {
-    return this.config.storage.find(start.toDate(), end && end.toDate(), this.config.googleId);
+    return this.data.storage.find(start.toDate(), end && end.toDate(), this.data.googleId);
   }
 
-  async getWeeklyEvents(start: moment.Moment, end?: moment.Moment, weekdays: Array<number> = [1,2,3,4,5,6,7]) {
+  getDatesByWeekOffsets(start: number, end?: number) {
+    const now = moment();
+    return [
+      now.clone().add({weeks: start}).startOf('isoWeek'),
+      end ? now.clone().add({weeks: end}).endOf('isoWeek') : null
+    ];
+  }
+
+  async getWeeklyEvents(startOffsetWeeks: number, endOffsetWeeks?: number, weekdays: Array<number> = defaultWeekdays) {
+    const [start, end] = this.getDatesByWeekOffsets(startOffsetWeeks, endOffsetWeeks);
     const events = await this.getEvents(start, end && end);
     const weeklyEvents = [];
     let previousWeekNumber, index = 0;
     for (const event of events) {
-      const weekNumber = moment(event.config.start).week();
+      const weekNumber = moment(event.start).week();
       
       if (!previousWeekNumber) {
         previousWeekNumber = weekNumber;
@@ -128,7 +138,7 @@ export default class Calendar {
         weeklyEvents[index] = {};
       }
 
-      const weekday = moment(event.config.start).isoWeekday();
+      const weekday = moment(event.start).isoWeekday();
       if (weekdays.indexOf(weekday) > -1) {
         weeklyEvents[index][weekday] = event;
       }
@@ -136,17 +146,16 @@ export default class Calendar {
     return weeklyEvents;
   }
 
-  async getFilledCalendar(startOffsetWeeks: number, endOffsetWeeks: number, weekdays: Array<number> = [1,2,3,4,5,6,7]) {
-    const now = moment();
-    const start = now.clone().add({weeks: startOffsetWeeks}).startOf('isoWeek');
-    const end = now.clone().add({weeks: endOffsetWeeks}).endOf('isoWeek');
+  async getFilledCalendar(startOffsetWeeks: number, endOffsetWeeks: number, weekdays: Array<number> = defaultWeekdays) {
+    const [start, end] = this.getDatesByWeekOffsets(startOffsetWeeks, endOffsetWeeks);
     const allEvents = await this.getEvents(start, end);
 
+    const now = moment();
     const weeks = [];
     for (let i = 0; i < endOffsetWeeks - startOffsetWeeks; i++) {
       const days = weekdays.map(weekday => {
         const start = now.clone().add({weeks: startOffsetWeeks + i}).isoWeekday(weekday);
-        const events = allEvents.filter(event => start.isSame(event.config.start, 'day'));
+        const events = allEvents.filter(event => start.isSame(event.start, 'day'));
         return new Day(start, events);
       });
       weeks.push(days);
