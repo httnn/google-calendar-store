@@ -109,7 +109,7 @@ export default class Calendar {
   }
 
   async getWeeklyEvents(start: moment.Moment, end?: moment.Moment, weekdays: Array<number> = [1,2,3,4,5,6,7]) {
-    const events = (await this.getEvents(start, end && end)).sort((a, b) => a > b ? 1 : -1);
+    const events = await this.getEvents(start, end && end);
     const weeklyEvents = [];
     let previousWeekNumber, index = 0;
     for (const event of events) {

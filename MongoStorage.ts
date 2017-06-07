@@ -34,6 +34,8 @@ export default class MongoStorage implements EventStorage {
       cancelled: false,
       start: {$gte: start},
       end: end ? {$lte: end} : undefined
+    }, {
+      sort: [['start', 'asc']]
     }).toArray();
     return items.map(i => new CalendarEvent(i));
   }
