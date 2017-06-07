@@ -15,6 +15,20 @@ export interface RawEvent {
 
 const log = message => console.log(`[${moment().format()}] ${message}`);
 
+class Day {
+  date: moment.Moment;
+  events: Array<CalendarEvent> = [];
+  
+  constructor(date: moment.Moment, events) {
+    this.date = date.startOf('day');
+    this.events = events;
+  }
+
+  toString() {
+    return `${this.date.format()}: ${this.events.map(e => e.config.summary).join(', ')}`;
+  }
+}
+
 export default class Calendar {
   config: Config;
   
@@ -130,16 +144,12 @@ export default class Calendar {
 
     const weeks = [];
     for (let i = 0; i < endOffsetWeeks - startOffsetWeeks; i++) {
-      const events = weekdays.map(weekday => {
+      const days = weekdays.map(weekday => {
         const start = now.clone().add({weeks: startOffsetWeeks + i}).isoWeekday(weekday);
-        const event = allEvents.find(event => start.isSame(event.config.start, 'day'));
-        if (event) {
-          return event;
-        } else {
-          return new CalendarEventPlaceholder(start.toDate());
-        }
+        const events = allEvents.filter(event => start.isSame(event.config.start, 'day'));
+        return new Day(start, events);
       });
-      weeks.push(events);
+      weeks.push(days);
     }
     return weeks;
   }
