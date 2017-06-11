@@ -1,7 +1,26 @@
 import * as moment from 'moment';
+import {stringify} from 'querystring';
 import {EventStorage} from './EventStorage';
 import CalendarEvent, {CalendarEventPlaceholder} from './CalendarEvent';
 import fetch from 'node-fetch';
+
+import Day from './Day';
+
+const log = message => console.log(`[${moment().format()}] ${message}`);
+const defaultWeekdays = [1, 2, 3, 4, 5, 6, 7];
+
+class EventFetchError extends Error {
+  response: any;
+  constructor(message, response) {
+    super(message);
+    this.name = 'EventFetchError';
+    this.response = response;
+  }
+}
+
+export interface RawEvent {
+  [key: string]: any
+};
 
 export interface CalendarData {
   googleId: string,
@@ -9,29 +28,10 @@ export interface CalendarData {
   apiKey: string
 };
 
-export interface RawEvent {
-  [key: string]: any
-};
-
-const log = message => console.log(`[${moment().format()}] ${message}`);
-const defaultWeekdays = [1, 2, 3, 4, 5, 6, 7];
-
-class Day {
-  date: moment.Moment;
-  events: Array<CalendarEvent> = [];
-  
-  constructor(date: moment.Moment, events) {
-    this.date = date.startOf('day');
-    this.events = events;
-  }
-
-  toString() {
-    return `${this.date.format()}: ${this.events.map(e => e.summary).join(', ')}`;
-  }
-}
-
 export default class Calendar {
   data: CalendarData;
+  syncToken: string;
+  eventUpdateTimeout: NodeJS.Timer;
   
   constructor(data: CalendarData) {
     this.data = data;
@@ -66,27 +66,60 @@ export default class Calendar {
   }
 
   async startEventUpdates(intervalMinutes: number = 5) {
-    log(`Updating "${this.data.googleId}" events...`);
-    const [createdEvents, updatedEvents, failedUpserts] = await this.updateEvents();
-    log(`Created ${createdEvents}, updated ${updatedEvents}, failed to upsert ${failedUpserts}.`);
-    setTimeout(() => {
+    await this.updateEvents();
+    this.eventUpdateTimeout = setTimeout(() => {
       this.startEventUpdates(intervalMinutes);
     }, intervalMinutes * 60 * 1000);
   }
 
-  async updateEvents(fetchFn = fetch) {
-    const {googleId, apiKey, storage} = this.data;
-    const timeMin = encodeURIComponent(moment().add({days: -14}).format());
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${googleId}/events?key=${apiKey}&singleEvents=true&showDeleted=true&timeMin=${timeMin}`;
-    try {
+  stopEventUpdates() {
+    clearTimeout(this.eventUpdateTimeout);
+  }
+
+  async fetchEvents(fetchFn = fetch) {
+    const {googleId, apiKey} = this.data;
+    const timeMin = moment().add({year: -1}).format();
+    let items = [], pageToken;
+    while (true) {
+      const query = {
+        key: apiKey,
+        singleEvents: true,
+        showDeleted: true,
+        timeMin,
+        pageToken,
+        syncToken: this.syncToken
+      };
+      if (this.syncToken) {
+        delete query.timeMin;
+      } else {
+        delete query.syncToken;
+      }
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${googleId}/events?${stringify(query)}`;
       const response = await fetchFn(url);
       const json = await response.json();
-      if (json.error) {
-        throw new Error(json.error.errors[0]);
+      if (!response.ok) {
+        throw new EventFetchError(`Failed to fetch events for ${this.data.googleId}`, json);
       }
+      if (json.items) {
+        items = items.concat(json.items);
+      }
+      if (json.nextPageToken) {
+        pageToken = json.nextPageToken;
+      } else {
+        this.syncToken = json.nextSyncToken;
+        break;
+      }
+    }
+    return items;
+  }
 
+  async updateEvents() {
+    log(`Updating "${this.data.googleId}" events...`);
+    const {storage} = this.data;
+    try {
+      const events = await this.fetchEvents();
       let createdEvents = 0, updatedEvents = 0, failedUpserts = 0;
-      for (const rawEvent of json.items) {
+      for (const rawEvent of events) {
         try {
           const result = await this.upsertEvent(rawEvent);
           if (result === 'update') {
@@ -99,7 +132,7 @@ export default class Calendar {
           console.error('Failed to upsert event:', rawEvent, e);
         }
       }
-      return [createdEvents, updatedEvents, failedUpserts];
+      log(`Created ${createdEvents}, updated ${updatedEvents}, failed to upsert ${failedUpserts}.`);
     } catch (e) {
       console.error('Failed to fetch events:', e);
     }

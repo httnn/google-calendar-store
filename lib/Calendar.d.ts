@@ -11,10 +11,12 @@ export interface RawEvent {
 }
 export default class Calendar {
     data: CalendarData;
+    syncToken: string;
     constructor(data: CalendarData);
     parseDatetime(dateTime: any): moment.Moment;
     upsertEvent(rawEvent: RawEvent): Promise<"update" | "create">;
     startEventUpdates(intervalMinutes?: number): Promise<void>;
+    fetchEvents(fetchFn?: any): Promise<any[]>;
     updateEvents(fetchFn?: any): Promise<number[]>;
     getEvents(start: moment.Moment, end?: moment.Moment): Promise<CalendarEvent[]>;
     getDatesByWeekOffsets(start: number, end?: number): moment.Moment[];
