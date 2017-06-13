@@ -35,6 +35,7 @@ export default class CalendarEvent {
   get description() { return this.data.description; }
   get start() { return this.data.start; }
   get end() { return this.data.end; }
+  get cancelled() { return this.data.cancelled; }
 
   isPast() {
     return moment(this.start).isBefore(moment(), 'day');
@@ -45,6 +46,6 @@ export default class CalendarEvent {
   }
 
   toString() {
-    return `[${moment(this.start).format()}]: "${this.summary}"`;
+    return `"${this.summary}" ${this.cancelled ? ' CANCELLED ' : ''} (${moment(this.start).format('DD/MM/YYYY HH:mm')})`;
   }
 }
