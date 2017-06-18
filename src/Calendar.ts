@@ -34,7 +34,7 @@ export default class Calendar {
   eventUpdateTimeout: NodeJS.Timer;
   
   constructor(data: CalendarData) {
-    this.data = data;
+    this.data = {...data};
   }
 
   parseDatetime(dateTime: any) {
@@ -139,7 +139,7 @@ export default class Calendar {
   }
 
   async getEvents(start: moment.Moment, end?: moment.Moment) {
-    return this.data.storage.find(start.toDate(), end && end.toDate(), this.data.googleId);
+    return this.data.storage.find(this.data.googleId, start.toDate(), end && end.toDate());
   }
 
   getDatesByWeekOffsets(start: number, end?: number) {

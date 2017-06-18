@@ -29,10 +29,10 @@ export default class MemoryStorage implements EventStorage {
     return Promise.resolve(event);
   }
 
-  find(start, end, calendarId) {
+  find(calendarId, start, end) {
     const results = this.events.filter(e =>
-      moment(e.start).isSameOrAfter(start)
-      && moment(e.end).isSameOrBefore(end)
+      (!start || moment(e.start).isSameOrAfter(start))
+      && (!end || moment(e.end).isSameOrBefore(end))
       && (!calendarId || e.calendarId === calendarId)
     );
     return Promise.resolve(results);

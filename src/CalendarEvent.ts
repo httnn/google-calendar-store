@@ -26,7 +26,7 @@ export default class CalendarEvent {
   data: EventData;
 
   constructor(data: EventData) {
-    this.data = data;
+    this.data = {...data};
   }
 
   get id() { return this.data.googleId; }

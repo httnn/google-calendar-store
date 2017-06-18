@@ -28,13 +28,20 @@ export default class MongoStorage implements EventStorage {
     return this.collection.findOne({googleId: eventId});
   }
 
-  async find(start, end, calendarId) {
-    const items = await this.collection.find({
+  async find(calendarId, start, end) {
+    const query = {
       calendarGoogleId: calendarId,
       cancelled: false,
       start: {$gte: start},
-      end: end ? {$lte: end} : undefined
-    }, {
+      end: {$lte: end}
+    };
+    if (!start) {
+      delete query.start;
+    }
+    if (!end) {
+      delete query.end;
+    }
+    const items = await this.collection.find(query, {
       sort: [['start', 'asc']]
     }).toArray();
     return items.map(i => new CalendarEvent(i));
