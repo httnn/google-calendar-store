@@ -34,6 +34,7 @@ export default class MemoryStorage implements EventStorage {
       (!start || moment(e.start).isSameOrAfter(start))
       && (!end || moment(e.end).isSameOrBefore(end))
       && (!calendarId || e.calendarId === calendarId)
+      && !e.cancelled
     );
     return Promise.resolve(results);
   }

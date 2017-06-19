@@ -24,8 +24,9 @@ export default class MongoStorage implements EventStorage {
     );
   }
 
-  findOne(eventId) {
-    return this.collection.findOne({googleId: eventId});
+  async findOne(eventId) {
+    const event = await this.collection.findOne({googleId: eventId});
+    return new CalendarEvent(event);
   }
 
   async find(calendarId, start, end) {
@@ -35,6 +36,9 @@ export default class MongoStorage implements EventStorage {
       start: {$gte: start},
       end: {$lte: end}
     };
+    if (!calendarId) {
+      delete query.calendarGoogleId;
+    }
     if (!start) {
       delete query.start;
     }
