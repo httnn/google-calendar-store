@@ -9,33 +9,31 @@ export default class MemoryStorage implements EventStorage {
     this.events = [];
   }
 
-  init() {
-    return Promise.resolve();
-  }
+  async init() {}
 
-  findOne(eventId) {
+  async findOne(eventId) {
     const e = this.events.find(e => e.id === eventId);
-    return Promise.resolve(e);
+    return e || null;
   }
 
-  update(eventId, event) {
+  async update(eventId, event) {
     const index = this.events.findIndex(e => e.id === eventId);
     this.events[index] = event;
-    return Promise.resolve(event);
+    return event;
   }
 
-  create(event) {
+  async create(event) {
     this.events.push(event);
-    return Promise.resolve(event);
+    return event;
   }
 
-  find(calendarId, start, end) {
+  async find(calendarId, start, end) {
     const results = this.events.filter(e =>
       (!start || moment(e.start).isSameOrAfter(start))
       && (!end || moment(e.end).isSameOrBefore(end))
       && (!calendarId || e.calendarId === calendarId)
       && !e.cancelled
     );
-    return Promise.resolve(results);
+    return results;
   }
 };

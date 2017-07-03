@@ -26,7 +26,10 @@ export default class MongoStorage implements EventStorage {
 
   async findOne(eventId) {
     const event = await this.collection.findOne({googleId: eventId});
-    return new CalendarEvent(event);
+    if (event) {
+      return new CalendarEvent(event);
+    }
+    return null;
   }
 
   async find(calendarId, start, end) {

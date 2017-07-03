@@ -63,6 +63,12 @@ storages.forEach(storageCreator => {
       expect(event).to.be.an.instanceOf(CalendarEvent);
     });
 
+    it('findOne does not return CalendarEvent', async () => {
+      await createEvent();
+      const event = await storage.findOne('two');
+      expect(event).to.be.null;
+    });
+
     it('find returns array of CalendarEvent', async () => {
       await createEvent();
       const events = await storage.find();
