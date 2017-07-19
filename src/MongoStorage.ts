@@ -36,17 +36,19 @@ export default class MongoStorage implements EventStorage {
     const query = {
       calendarGoogleId: calendarId,
       cancelled: false,
-      start: {$gte: start},
-      end: {$lte: end}
+      start: {$gte: start, $lte: end}
     };
     if (!calendarId) {
       delete query.calendarGoogleId;
     }
     if (!start) {
-      delete query.start;
+      delete query.start.$gte;
     }
     if (!end) {
-      delete query.end;
+      delete query.start.$lte;
+    }
+    if (!start && !end) {
+      delete query.start;
     }
     const items = await this.collection.find(query, {
       sort: [['start', 'asc']]

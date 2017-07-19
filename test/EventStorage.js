@@ -119,7 +119,7 @@ storages.forEach(storageCreator => {
       await createEvent({summary: 'now 1'});
       await createEvent({summary: 'now 2'});
       await createEvent({summary: 'future', start: end.toDate()});
-      const events = await storage.find('calendarGoogleId', start.clone().add({minute: 1}).toDate(), end.toDate());
+      const events = await storage.find('calendarGoogleId', start.clone().add({minute: 1}).toDate(), end.clone().add({minute: -1}).toDate());
       expect(events).to.have.lengthOf(2);
       expect(events[0].summary).to.eq('now 1');
       expect(events[1].summary).to.eq('now 2');

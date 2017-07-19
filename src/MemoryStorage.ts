@@ -30,7 +30,7 @@ export default class MemoryStorage implements EventStorage {
   async find(calendarId, start, end) {
     const results = this.events.filter(e =>
       (!start || moment(e.start).isSameOrAfter(start))
-      && (!end || moment(e.end).isSameOrBefore(end))
+      && (!end || moment(e.start).isSameOrBefore(end))
       && (!calendarId || e.calendarId === calendarId)
       && !e.cancelled
     );
