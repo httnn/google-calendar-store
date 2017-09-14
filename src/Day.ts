@@ -10,6 +10,10 @@ export default class Day {
     this.events = events;
   }
 
+  hasEvents() {
+    return this.events.length > 0;
+  }
+
   toString() {
     return `${this.date.format()}: ${this.events.map(e => e.summary).join(', ')}`;
   }

@@ -4,6 +4,7 @@ import {EventStorage} from './EventStorage';
 import CalendarEvent, {CalendarEventPlaceholder} from './CalendarEvent';
 import fetch from 'node-fetch';
 
+import Week from './Week';
 import Day from './Day';
 
 const log = message => console.log(`[${moment().format()}] ${message}`);
@@ -65,10 +66,10 @@ export default class Calendar {
     }
   }
 
-  async startEventUpdates(intervalMinutes: number = 5) {
-    await this.updateEvents();
+  async startEventUpdates(intervalMinutes: number = 5, years?: number) {
+    await this.updateEvents(years);
     this.eventUpdateTimeout = setTimeout(() => {
-      this.startEventUpdates(intervalMinutes);
+      this.startEventUpdates(intervalMinutes, years);
     }, intervalMinutes * 60 * 1000);
   }
 
@@ -76,9 +77,9 @@ export default class Calendar {
     clearTimeout(this.eventUpdateTimeout);
   }
 
-  async fetchEvents(fetchFn = fetch) {
+  async fetchEvents(years: number = 1, fetchFn = fetch) {
     const {googleId, apiKey} = this.data;
-    const timeMin = moment().add({year: -1}).format();
+    const timeMin = moment().add({year: -years}).format();
     let items = [], pageToken;
     while (true) {
       const query = {
@@ -113,11 +114,11 @@ export default class Calendar {
     return items;
   }
 
-  async updateEvents() {
+  async updateEvents(years?: number) {
     log(`Updating "${this.data.googleId}" events...`);
     const {storage} = this.data;
     try {
-      const events = await this.fetchEvents();
+      const events = await this.fetchEvents(years);
       let createdEvents = 0, updatedEvents = 0, failedUpserts = 0;
       for (const rawEvent of events) {
         try {
@@ -179,19 +180,29 @@ export default class Calendar {
     return weeklyEvents;
   }
 
-  async getFilledCalendar(startOffsetWeeks: number, endOffsetWeeks: number, weekdays: Array<number> = defaultWeekdays) {
-    const [start, end] = this.getDatesByWeekOffsets(startOffsetWeeks, endOffsetWeeks);
-    const allEvents = await this.getEvents(start, end);
+  async getFilledCalendar(start: number | moment.Moment, end: number | moment.Moment, weekdays: Array<number> = defaultWeekdays): Promise<Array<Week>> {
+    let allEvents, weekCount, startWeek;
+    if (typeof start === 'number' && typeof end === 'number') {
+      const [s, e] = this.getDatesByWeekOffsets(start, end);
+      weekCount = end - start;
+      startWeek = s;
+      allEvents = await this.getEvents(s, e);
+    } else if (moment.isMoment(start) && moment.isMoment(end)) {
+      weekCount = end.diff(start, 'weeks');
+      allEvents = await this.getEvents(start, end);
+      startWeek = start;
+    } else {
+      throw new Error('start and end have to be numbers or moments!');
+    }
 
-    const now = moment();
     const weeks = [];
-    for (let i = 0; i < endOffsetWeeks - startOffsetWeeks; i++) {
+    for (let i = 0; i < weekCount; i++) {
       const days = weekdays.map(weekday => {
-        const start = now.clone().add({weeks: startOffsetWeeks + i}).isoWeekday(weekday);
+        const start = startWeek.clone().add({weeks: i}).isoWeekday(weekday);
         const events = allEvents.filter(event => start.isSame(event.start, 'day'));
         return new Day(start, events);
       });
-      weeks.push(days);
+      weeks.push(new Week(days));
     }
     return weeks;
   }
