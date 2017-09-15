@@ -188,7 +188,7 @@ export default class Calendar {
       startWeek = s;
       allEvents = await this.getEvents(s, e);
     } else if (moment.isMoment(start) && moment.isMoment(end)) {
-      weekCount = end.diff(start, 'weeks');
+      weekCount = end.diff(start, 'weeks') + 1;
       allEvents = await this.getEvents(start, end);
       startWeek = start;
     } else {
