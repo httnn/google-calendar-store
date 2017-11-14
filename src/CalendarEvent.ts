@@ -7,7 +7,8 @@ export interface EventData {
   description: string,
   start: Date,
   end: Date,
-  cancelled: boolean
+  cancelled: boolean,
+  location: string
 };
 
 export class CalendarEventPlaceholder {
@@ -36,6 +37,7 @@ export default class CalendarEvent {
   get start() { return this.data.start; }
   get end() { return this.data.end; }
   get cancelled() { return this.data.cancelled; }
+  get location() { return this.data.location; }
 
   isPast() {
     return moment(this.start).isBefore(moment(), 'day');

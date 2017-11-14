@@ -52,6 +52,7 @@ export default class Calendar {
       calendarGoogleId: googleId,
       summary: rawEvent.summary,
       description: rawEvent.description,
+      location: rawEvent.location,
       start: this.parseDatetime(rawEvent.start).toDate(),
       end: this.parseDatetime(rawEvent.end).toDate(),
       cancelled: rawEvent.status === 'cancelled'
