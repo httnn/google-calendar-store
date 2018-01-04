@@ -109,11 +109,11 @@ export default class Calendar {
           this.syncToken = response.nextSyncToken;
           break;
         }
-        return items;        
       } catch (e) {
         throw new EventFetchError(`Failed to fetch events for ${this.googleId}`, e);
       }
     }
+    return items;
   }
 
   async updateEvents(years?: number) {
