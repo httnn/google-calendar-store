@@ -1,8 +1,7 @@
 import * as moment from 'moment';
-import {stringify} from 'querystring';
 import {EventStorage} from './EventStorage';
 import CalendarEvent, {CalendarEventPlaceholder} from './CalendarEvent';
-import fetch from 'node-fetch';
+import CalendarAPI from './CalendarAPI';
 
 import Week from './Week';
 import Day from './Day';
@@ -26,16 +25,21 @@ export interface RawEvent {
 export interface CalendarData {
   googleId: string,
   storage: EventStorage,
-  apiKey: string
+  clientEmail: string,
+  privateKey: string
 };
 
 export default class Calendar {
-  data: CalendarData;
+  googleId: string;
+  storage: EventStorage;
   syncToken: string;
   eventUpdateTimeout: NodeJS.Timer;
+  calendarAPI: CalendarAPI;
   
   constructor(data: CalendarData) {
-    this.data = {...data};
+    this.googleId = data.googleId;
+    this.storage = data.storage;
+    this.calendarAPI = new CalendarAPI(data.clientEmail, data.privateKey);
   }
 
   parseDatetime(dateTime: any) {
@@ -46,10 +50,9 @@ export default class Calendar {
   }
 
   async upsertEvent(rawEvent: RawEvent) {
-    const {storage, googleId} = this.data;
     const event = new CalendarEvent({
       googleId: rawEvent.id,
-      calendarGoogleId: googleId,
+      calendarGoogleId: this.googleId,
       summary: rawEvent.summary,
       description: rawEvent.description,
       location: rawEvent.location,
@@ -57,12 +60,12 @@ export default class Calendar {
       end: this.parseDatetime(rawEvent.end).toDate(),
       cancelled: rawEvent.status === 'cancelled'
     });
-    const existing = await storage.findOne(event.id);
+    const existing = await this.storage.findOne(event.id);
     if (existing) {
-      await storage.update(event.id, event);
+      await this.storage.update(event.id, event);
       return 'update';
     } else {
-      await storage.create(event);
+      await this.storage.create(event);
       return 'create';
     }
   }
@@ -78,13 +81,12 @@ export default class Calendar {
     clearTimeout(this.eventUpdateTimeout);
   }
 
-  async fetchEvents(years: number = 1, fetchFn = fetch) {
-    const {googleId, apiKey} = this.data;
+  async fetchEvents(years: number = 1) {
     const timeMin = moment().add({year: -years}).format();
     let items = [], pageToken;
     while (true) {
       const query = {
-        key: apiKey,
+        calendarId: this.googleId,
         singleEvents: true,
         showDeleted: true,
         timeMin,
@@ -96,28 +98,26 @@ export default class Calendar {
       } else {
         delete query.syncToken;
       }
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${googleId}/events?${stringify(query)}`;
-      const response = await fetchFn(url);
-      const json = await response.json();
-      if (!response.ok) {
-        throw new EventFetchError(`Failed to fetch events for ${this.data.googleId}`, json);
-      }
-      if (json.items) {
-        items = items.concat(json.items);
-      }
-      if (json.nextPageToken) {
-        pageToken = json.nextPageToken;
-      } else {
-        this.syncToken = json.nextSyncToken;
-        break;
+      try {
+        const response = await this.calendarAPI.getEvents(query);
+        if (response.items) {
+          items = items.concat(response.items);
+        }
+        if (response.nextPageToken) {
+          pageToken = response.nextPageToken;
+        } else {
+          this.syncToken = response.nextSyncToken;
+          break;
+        }
+        return items;        
+      } catch (e) {
+        throw new EventFetchError(`Failed to fetch events for ${this.googleId}`, e);
       }
     }
-    return items;
   }
 
   async updateEvents(years?: number) {
-    log(`Updating "${this.data.googleId}" events...`);
-    const {storage} = this.data;
+    log(`Updating "${this.googleId}" events...`);
     try {
       const events = await this.fetchEvents(years);
       let createdEvents = 0, updatedEvents = 0, failedUpserts = 0;
@@ -141,7 +141,7 @@ export default class Calendar {
   }
 
   async getEvents(start: moment.Moment, end?: moment.Moment) {
-    return this.data.storage.find(this.data.googleId, start.toDate(), end && end.toDate());
+    return this.storage.find(this.googleId, start.toDate(), end && end.toDate());
   }
 
   getDatesByWeekOffsets(start: number, end?: number) {
